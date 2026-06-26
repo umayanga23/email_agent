@@ -1,0 +1,381 @@
+{
+  "name": "Email_Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "custom",
+              "cronExpression": "*/50 * * * *"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -64,
+        -112
+      ],
+      "id": "877e4562-d3ac-4c5b-b212-8dcb405af719",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "skVHNc38mz1gNOE4",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.snippet }}",
+        "options": {
+          "systemMessage": "You are an email classifier. You MUST respond with valid JSON only. No extra text.\n\n{\n  \"category\": \"URGENT or INQUIRY or SPAM or NEWSLETTER\",\n  \"summary\": \"one line summary\",\n  \"needs_reply\": true,\n  \"draft_reply\": \"short reply here\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        144,
+        -112
+      ],
+      "id": "790ff53d-ebad-431f-8c85-6d1de9581f01",
+      "name": "AI Agent",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        16,
+        96
+      ],
+      "id": "f78795be-959a-419a-ae75-5156281a14cf",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "IZ5jF4QTyzYRUU8I",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.output).category }}",
+                    "rightValue": "NEWSLETTER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e3e6f51d-613c-413e-815c-cf5bb5d66b6a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "NEWSLETTER"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c3f6cb8c-3664-4816-827d-a17e22c8eb1a",
+                    "leftValue": "={{ JSON.parse($json.output).category }}",
+                    "rightValue": "URGENT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "URGENT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f1aea390-22e6-433a-8fc9-53935afedaa1",
+                    "leftValue": "={{ JSON.parse($json.output).category }}",
+                    "rightValue": "SPAM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SPAM"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a946c5cb-7c11-44e3-9fd0-14c68f4f9170",
+                    "leftValue": "={{ JSON.parse($json.output).category }}",
+                    "rightValue": "JOB_VACANCY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "job_vacancy"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        -32
+      ],
+      "id": "b79748ed-0c2d-4e5a-950b-3c2641f0458a",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ez3MaEeCNQ4QMbu5y8zIcQoM04-Bc05PrbojoXv-P-M",
+          "mode": "list",
+          "cachedResultName": "agent_ai",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ez3MaEeCNQ4QMbu5y8zIcQoM04-Bc05PrbojoXv-P-M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Ez3MaEeCNQ4QMbu5y8zIcQoM04-Bc05PrbojoXv-P-M/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ new Date().toLocaleDateString('en-GB') }}",
+            "category": "={{ JSON.parse($('AI Agent').item.json.output).category }}",
+            "summary": "={{ JSON.parse($('AI Agent').item.json.output).summary }}",
+            "needs_reply": "={{ JSON.parse($('AI Agent').item.json.output).needs_reply }}",
+            "draft_reply": "={{ JSON.parse($('AI Agent').item.json.output).draft_reply }}",
+            "From": "={{ $('Gmail Trigger').item.json.From }}",
+            "Subject": "={{ $('Gmail Trigger').item.json.Subject }}"
+          },
+          "matchingColumns": [
+            "date"
+          ],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "From",
+              "displayName": "From",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "needs_reply",
+              "displayName": "needs_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "draft_reply",
+              "displayName": "draft_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        432,
+        -80
+      ],
+      "id": "44fc1003-759d-4ab6-911c-cbfbce8616e8",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mbm1rfzCwpyG443H",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [],
+        [],
+        []
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "19093c3f-52b9-447b-b1b9-79c7399cadcb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "abcc9997191bf4b1a59d53ac7478aa324802fec3af7b7e875387dc489a1fed85"
+  },
+  "nodeGroups": [],
+  "id": "vuUuHDdPaaWjYyob",
+  "tags": []
+}
